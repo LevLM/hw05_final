@@ -28,7 +28,7 @@ class Post(models.Model):
         upload_to='posts/',
         blank=True,
         null=True
-    )  
+    )
 
     class Meta:
         verbose_name = 'Пост'
