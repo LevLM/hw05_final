@@ -43,6 +43,7 @@ class Group(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     description = models.TextField()
+    help_text = 'Группа, к которой будет относиться пост'
 
     class Meta:
         verbose_name = 'Группа'

@@ -87,12 +87,6 @@ class PostFormTests(TestCase):
                 image='posts/small.gif'
             ).exists())
 
-    def test_title_label_help_text(self):
-        text_label = PostFormTests.form.fields['text'].label
-        self.assertEquals(text_label, 'Текст поста')
-        text_help_text = PostFormTests.form.fields['text'].help_text
-        self.assertEquals(text_help_text, 'Текст нового поста')
-
     def test_edit_post(self):
         """Тест на редактирование поста"""
         form_data = {

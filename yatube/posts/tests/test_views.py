@@ -1,17 +1,21 @@
+import tempfile
+
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, override_settings, TestCase
 from django.urls import reverse
-from django import forms
 from posts.models import Follow, Group, Post
 from posts.forms import PostForm
 from posts.settings import POSTS_PER_PAGE
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 
 
 User = get_user_model()
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostViewTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -47,6 +51,9 @@ class PostViewTests(TestCase):
             group=cls.group,
             image=uploaded,
         )
+        # cls.comment = Comment.objects.create(
+        #     text='Тестовый текст комментария',
+        # )
         cls.posts_pages_reverse = [
             reverse('posts:index'),
             reverse('posts:group_list', kwargs={'slug': cls.group.slug}),
@@ -101,14 +108,12 @@ class PostViewTests(TestCase):
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
                 post = response.context['page_obj'][0]
-                text = post.text
-                image = post.image
-                author_username = post.author.username
-                group_title = post.group.title
-                self.assertEqual(text, self.post.text)
-                self.assertEqual(author_username, PostViewTests.user.username)
-                self.assertEqual(group_title, self.post.group.title)
-                self.assertEqual(image,
+                self.assertEqual(post.text, self.post.text)
+                self.assertEqual(
+                    post.author.username, PostViewTests.user.username
+                )
+                self.assertEqual(post.group.title, self.post.group.title)
+                self.assertEqual(post.image,
                                  self.post.image)
         response = self.authorized_client.get(
             reverse('posts:group_list', kwargs={
@@ -130,14 +135,8 @@ class PostViewTests(TestCase):
             reverse('posts:post_edit',
                     kwargs={'post_id': PostViewTests.post.pk})
         )
-        form_fields = {
-            'text': forms.fields.CharField,
-            'group': forms.fields.ChoiceField
-        }
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                form_field = response.context.get('form').fields.get(value)
-                self.assertIsInstance(form_field, expected)
+        form = response.context.get('form')
+        self.assertIsInstance(form, PostForm)
 
     def test_cache(self):
         """ Тестирование работы кэша"""
@@ -168,8 +167,9 @@ class PostViewTests(TestCase):
             'posts:profile_follow',
             kwargs={'username': self.user.username}
         ))
-        follower = Follow.objects.get(author=self.user, user=new_user)
-        self.assertTrue(follower)
+        self.assertTrue(Follow.objects.filter(
+            user=new_user, author=self.user
+        ).exists())
 
     def test_authorized_user_unfollow(self):
         """Отписка авторизованным пользователем """
@@ -200,6 +200,28 @@ class PostViewTests(TestCase):
         self.client.force_login(client)
         response = self.client.get(reverse('posts:follow_index'))
         self.assertEqual(len(response.context['page_obj']), 0)
+
+    def test_add_comment(self):
+        """Авторизированный пользователь создает комментарий"""
+        post = Post.objects.last()
+        form_data = {
+            'text': 'Тестовый текст комментария',
+        }
+        response = self.authorized_client.post(
+            reverse(
+                'posts:add_comment',
+                kwargs={'post_id': post.id}),
+            data=form_data,
+            follow=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        response1 = self.authorized_client.get(
+            reverse(
+                'posts:post_detail',
+                kwargs={'post_id': post.id}
+            )
+        )
+        self.assertEqual(len(response1.context['comments']), 1)
 
 
 class PaginatorViewsTest(TestCase):

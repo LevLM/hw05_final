@@ -42,12 +42,12 @@ def profile(request, username):
     user = get_object_or_404(User, username=username)
     post = user.posts.all()
     page_obj = p_paginator(post, request)
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(
+    following = (
+        request.user.is_authenticated
+        and request.user.username != username and Follow.objects.filter(
             user=request.user, author=user
-        ).exists()
-    else:
-        following = False
+        )
+    )
     context = {
         'author': user,
         'page_obj': page_obj,
@@ -73,13 +73,12 @@ def post_detail(request, post_id):
 def post_create(request):
     form = PostForm(request.POST or None, files=request.FILES or None)
     context = {'form': form}
-    if request.method == 'POST':
-        if form.is_valid():
-            form.instance.author = request.user
-            post = form.save()
-            post.author = request.user
-            post.save()
-            return redirect('posts:profile', request.user.username)
+    if request.method == 'POST' and form.is_valid():
+        form.instance.author = request.user
+        post = form.save()
+        post.author = request.user
+        post.save()
+        return redirect('posts:profile', request.user.username)
     return render(request, 'posts/create_post.html', context)
 
 
