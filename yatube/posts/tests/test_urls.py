@@ -88,10 +88,10 @@ class StaticURLTests(TestCase):
     def test_posts_edit_list_url_redirect_anonymous(self):
         """Страница /post_edit/ перенаправляет анонимного пользователя."""
         response = self.guest_client.get(
-            '/posts/cls.post.id/edit/', follow=True
+            f'/posts/{self.post.id}/edit/', follow=True
         )
         self.assertRedirects(
-            response, '/auth/login/?next=/posts/cls.post.id/edit/'
+            response, f'/auth/login/?next=/posts/{self.post.id}/edit/'
         )
 
     def test_create_url_redirect_anonymous(self):

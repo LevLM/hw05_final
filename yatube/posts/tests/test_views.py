@@ -51,9 +51,6 @@ class PostViewTests(TestCase):
             group=cls.group,
             image=uploaded,
         )
-        # cls.comment = Comment.objects.create(
-        #     text='Тестовый текст комментария',
-        # )
         cls.posts_pages_reverse = [
             reverse('posts:index'),
             reverse('posts:group_list', kwargs={'slug': cls.group.slug}),

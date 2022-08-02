@@ -44,7 +44,7 @@ def profile(request, username):
     page_obj = p_paginator(post, request)
     following = (
         request.user.is_authenticated
-        and request.user.username != username and Follow.objects.filter(
+        and request.user != user and Follow.objects.filter(
             user=request.user, author=user
         )
     )
